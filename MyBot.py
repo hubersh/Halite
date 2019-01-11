@@ -10,19 +10,17 @@ from hlt import constants
 # This library contains direction metadata to better interface with the game.
 from hlt.positionals import Direction
 
-# This library allows you to generate random numbers.
+
 import random
 
-# Logging allows you to save messages for yourself. This is required because the regular STDOUT
-#   (print statements) are reserved for the engine-bot communication.
+
 import logging
 
 """ <<<Game Begin>>> """
 
 # This game object contains the initial game state.
 game = hlt.Game()
-# At this point "game" variable is populated with initial map data.
-# This is a good place to do computationally expensive start-up pre-processing.
+
 # As soon as you call "ready" function below, the 2 second per turn timer will start.
 game.ready("MyPythonBot")
 
@@ -32,33 +30,80 @@ logging.info("Successfully created bot! My Player ID is {}.".format(game.my_id))
 
 """ <<<Game Loop>>> """
 
+ship_states = {}
 while True:
-    # This loop handles each turn of the game. The game object changes every turn, and you refresh that state by
-    #   running update_frame().
+
     game.update_frame()
     # You extract player metadata and the updated map metadata here for convenience.
     me = game.me
     game_map = game.game_map
 
-    # A command queue holds all the commands you will run this turn. You build this list up and submit it at the
-    #   end of the turn.
+
     command_queue = []
 
-    for ship in me.get_ships():
-        # For each of your ships, move randomly if the ship is on a low halite location or the ship is full.
-        # Else, collect halite.
-        if game_map[ship.position].halite_amount < constants.MAX_HALITE / 10 or ship.is_full:
-            command_queue.append(
-                ship.move(
-                    random.choice([ Direction.North, Direction.South, Direction.East, Direction.West ])))
-        else:
-            command_queue.append(ship.stay_still())
+    #order of directions
+    direction_order = [Direction.North, Direction.South, Direction.East, Direction.West, Direction.Still]
 
-    # If the game is in the first 200 turns and you have enough halite, spawn a ship.
-    # Don't spawn a ship if you currently have a ship at port, though - the ships will collide.
+    position_choices = []
+    for ship in me.get_ships():
+        if ship.id not in ship_states:
+            #assuming that since it is not in dict, it just spawned, so start collecting!
+            ship_states[ship.id] = "collection"
+        #for each turn, a ship can only move one direction
+        #here is getting the choices, like coordinates
+        position_options = ship.position.get_surrounding_cardinals() + [ship.position]
+
+        #movement mapped to coordinate i.e. {(0,1): (19,38)}
+        position_dict = {}
+
+        #mapped to halite amount i.e. {(0,1): 500}
+        halite_dict = {}
+
+        #populating the position dictionary
+        for n, direction in enumerate(direction_order):
+            position_dict[direction] = position_options[n]
+
+
+        #populating the halite dictionary
+        for direction in position_dict:
+            position = position_dict[direction]
+            halite_amount = game_map[position].halite_amount
+            #if we don't have a ship movign towards same halite
+            if position_dict[direction] not in position_choices:
+                if direction == Direction.Still:
+                    halite_dict[direction] = halite_amount*3
+                else:
+                    halite_dict[direction] = halite_amount
+
+        #ship.position.get_all_cardinals() returns [Direction.North, Dir...]<-what we need to pass to moves
+
+        if game.turn_number != game.turn_number%15:
+            logging.info(position_options)
+
+
+        #TODO:LOOK INTO naive_navigate() make it better :D
+        #we are going to be depositing
+        if ship_states[ship.id] == "depositing":
+            #look into multiple shipyards
+            move = game_map.naive_navigate(ship, me.shipyard.position)
+            position_choices.append(position_dict[directional_choice])
+            command_queue.append(ship.move(move))
+            if move == Direction.Still:
+                ship_states[ship.id] = "collection"
+
+        elif ship_states[ship.id] == "collection":
+            #navigate to highest halite square, that shouldn't be headed towards
+            directional_choice = max(halite_dict, key = halite_dict.get)
+            position_choices.append(position_dict[directional_choice])
+            #navigating to the most halite
+            command_queue.append(ship.move(directional_choice))
+            #if we want to  stop collecting at 900 halite
+            if ship.halite_amount > constants.MAX_HALITE *.85:
+                ship_states[ship.id] = "depositing"
+
+
     if game.turn_number <= 200 and me.halite_amount >= constants.SHIP_COST and not game_map[me.shipyard].is_occupied:
         command_queue.append(me.shipyard.spawn())
 
-    # Send your moves back to the game environment, ending this turn.
-    game.end_turn(command_queue)
 
+    game.end_turn(command_queue)
