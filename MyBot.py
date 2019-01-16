@@ -45,6 +45,8 @@ newSpawn = False
 shipRange = 6
 # global num_turns
 num_turns = 0
+totalShips = 18
+slamBool = False
 
 
 class Miner:
@@ -129,7 +131,7 @@ class Miner:
         desireX = x
         desireY = y
 
-        if game.game_map[hlt.entity.Position(x, y)].halite_amount > 50 and self.ship.halite_amount < 999:
+        if game.game_map[hlt.entity.Position(x, y)].halite_amount > 50 and self.ship.halite_amount < 999 and self.slam is False:
             command_list.append(self.ship.stay_still())
             return
         if self.ship.halite_amount > 980:
@@ -275,9 +277,10 @@ def checkDead():
                 command_list = []
 
 def spawnShip():
+    global slamBool
     # Spawn a new ship for this temp condition
-    if len(me.get_ships()) < 25 and me.halite_amount > 1000:
-        if game.game_map[hlt.entity.Position(me.shipyard.position.x, me.shipyard.position.y)].is_occupied is False and safeSpawn is True:
+    if len(me.get_ships()) < totalShips and me.halite_amount > 2000 and num_turns / (300+25*width/8) < .85 :
+        if game.game_map[hlt.entity.Position(me.shipyard.position.x, me.shipyard.position.y)].is_occupied is False and safeSpawn is True and slamBool is False:
             command_list.append(me.shipyard.spawn())
             newSpawn = True
             tempList = []
@@ -293,15 +296,18 @@ def defend():
                 owned = True
                 break
 
-        if owned is False:
+        if owned is False and me.halite_amount > 1000:
             command_list.append(me.shipyard.spawn())
 
 def slam():
+    global slamBool
     global num_turns
     if (300+25*width/8) - num_turns < 30:
+        slamBool = True
         for ship in ship_list:
             ship.target_home()
             ship.slam = True
+
     num_turns += 1
 
 #For some reason my bot sometimes can't recognize when a ship dies...
@@ -316,6 +322,17 @@ def pickMoves():
         except:
             num = 0
 
+def numMiners():
+    sum = 0
+    for x in range(width):
+        for y in range(height):
+            sum += game.game_map[hlt.entity.Position(x, y)].halite_amount
+
+    avg = sum / (width * height)
+    global totalShips
+    totalShips = int (avg / 8)
+
+numMiners()
 
 while True:
     #Update the frame
