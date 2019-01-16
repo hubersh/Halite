@@ -16,6 +16,7 @@ import random
 # Logging allows you to save messages for yourself. This is required because the regular STDOUT
 #   (print statements) are reserved for the engine-bot communication.
 import logging
+from random import randint
 
 """ <<<Game Begin>>> """
 
@@ -51,6 +52,7 @@ class Miner:
         self.ship = me.get_ship(shipId)
         self.hasTarget = False
         self.headingHome = False
+        self.avoiding = False
 
     def target_highest(self):
         #Dont seek the new highest if we are already seeking a target (Adjust later to handle
@@ -81,36 +83,111 @@ class Miner:
             self.hasTarget = True
             self.adjust_range(sum / sumCount)
 
-    def seek(self):
-        # self.check_home()
+    def target_ideal(self):
+        if self.hasTarget is False:
+            minDistance = 1000000;
+            highX= 0
+            highY = 0
+            #Calculate the average value of halite in our range while looping
+            sum = 0
+            sumCount = 0
+            for x in range(width):
+                for y in range(height):
+                    tempAmount = game.game_map[hlt.entity.Position(x, y)].halite_amount
+                    distance = game.game_map.calculate_distance(hlt.entity.Position(me.shipyard.position.x, me.shipyard.position.y), hlt.entity.Position(x, y))
+                    if tempAmount > 30 and distance <= shipRange and self.target_avoid(x, y) is True and distance < minDistance:
+                        minDistance = distance
+                        highX = x
+                        highY = y
 
+                    #Calculate average
+                    if distance <= shipRange:
+                        sumCount += 1
+                        sum += tempAmount
+
+            self.targetX = highX
+            self.targetY = highY
+            target_list.append((highX, highY))
+            self.hasTarget = True
+            self.adjust_range(sum / sumCount)
+
+    #Seconds time is the charm?
+    def seek2(self):
         self.target_highest()
+        self.avoiding = False
+        # self.target_ideal()
         x = self.ship.position.x
         y = self.ship.position.y
+        desireX = x
+        desireY = y
 
-        # logging.info("X and Y {} {}.".format(self.targetX, self.targetY))
+        ideal_moves = []
+        possible_moves = []
 
+        #Gather ideal moves
         if x < self.targetX:
-            self.miner_avoid(x, y, 1)
-        elif x  > self.targetX:
-            self.miner_avoid(x, y, 3)
-        elif y  < self.targetY:
-            self.miner_avoid(x, y, 2)
-        elif y > self.targetY:
-            self.miner_avoid(x, y, 0)
-        else:
-            #If we are heading home clear the target and look for a new one.
+            ideal_moves.append((x + 1, y, "e"))
+        if x  > self.targetX:
+            ideal_moves.append((x - 1, y, "w"))
+        if y  < self.targetY:
+            ideal_moves.append((x, y + 1, "s"))
+        if y > self.targetY:
+            ideal_moves.append((x, y - 1, "n"))
+
+        #No ideal moves means we are standing on the target
+        if len(ideal_moves) == 0:
+            #If we reached home...
             if self.headingHome is True:
                 self.headingHome = False
                 self.hasTarget = False
-                return
-            #Else we want to gather the target halite.
-            command_list.append(self.ship.stay_still())
 
-            #Check if we should stop collecting and head back to the base.
-            if self.ship.halite_amount > 999 or game.game_map[hlt.entity.Position(self.targetX, self.targetY)].halite_amount < 30:
+            #Over 900 halite? Start to head back
+            elif self.ship.halite_amount > 900:
                 if self.headingHome is False:
                     self.target_home()
+
+            # Space less than 20? Head to another
+            elif game.game_map[hlt.entity.Position(self.targetX, self.targetY)].halite_amount < 20:
+                self.hasTarget = False
+                self.target_ideal()
+
+            #Otherwise continue to collect halite
+            else:
+                command_list.append(self.ship.stay_still())
+            return
+
+        #Pick a random valid move and see if we can move in that direction.
+        while len(ideal_moves) != 0:
+            rand = randint(0, len(ideal_moves) - 1)
+            desireX = ideal_moves[rand][0]
+            desireY = ideal_moves[rand][1]
+            #Is this not a safe move?
+            if game.game_map[hlt.entity.Position(desireX, desireY)].is_occupied or self.willMove(desireX, desireY) is True:
+                del ideal_moves[rand]
+
+            #If it is safe then just move there.
+            else:
+                command_list.append(self.ship.move(ideal_moves[rand][2]))
+                move_list.append((desireX, desireY))
+                return
+
+        #If our ideal moves are not valid, then pick from all possible moves
+        if game.game_map[hlt.entity.Position(x + 1, y)].is_occupied is False and self.willMove(x + 1, y) is False:
+            possible_moves.append((x + 1, y, "e"))
+        if game.game_map[hlt.entity.Position(x - 1, y)].is_occupied is False and self.willMove(x - 1, y) is False:
+            possible_moves.append((x - 1, y, "w"))
+        if game.game_map[hlt.entity.Position(x, y + 1)].is_occupied is False and self.willMove(x, y + 1) is False:
+            possible_moves.append((x, y + 1, "s"))
+        if game.game_map[hlt.entity.Position(x, y - 1)].is_occupied is False and self.willMove(x, y - 1) is False:
+            possible_moves.append((x, y - 1, "n"))
+
+        #If there are no possible moves then just stay still
+        if len(possible_moves) == 0:
+            command_list.append(self.ship.stay_still())
+        else:
+            rand = randint(0, len(possible_moves) - 1)
+            command_list.append(self.ship.move(possible_moves[rand][2]))
+            move_list.append((possible_moves[rand][0], possible_moves[rand][1]))
 
     def target_home(self):
         self.targetX = me.shipyard.position.x
@@ -118,7 +195,7 @@ class Miner:
         self.headingHome = True
 
     def adjust_range(self, avg):
-        if avg < 80:
+        if avg < 100:
             global shipRange
             shipRange += 1
             logging.info("Range extended to: {}.".format(shipRange))
@@ -127,91 +204,20 @@ class Miner:
         for coord in target_list:
             if x == coord[0] and y == coord[1]:
                 return False
-
-        # if game.game_map[hlt.entity.Position(self.targetX, self.targetY)].is_occupied
-
         return True
 
-    # Dir is the desired direction that the ship wants to move.
-    # 0 -> North
-    # 1 -> East
-    # 2 -> South
-    # 3 -> West
-    def miner_avoid(self, x, y, dir):
-        newDir = dir
+    def hasAvoided(self, x, y):
+        for myShip in ship_list:
+            if myShip.ship.position.x == x and myShip.ship.position.y == y:
+                return myShip.avoiding
+        return False
 
-        if dir == 0:
-            desireX = x
-            desireY = y - 1
-        if dir == 1:
-            desireX = x + 1
-            desireY = y
-        if dir == 2:
-            desireX = x
-            desireY = y + 1
-        if dir == 3:
-            desireX = x - 1
-            desireY = y
-
-        switched = False
-        still = False
-
-        while True:
-            #Is this spot already filled with another ship?
-            if game.game_map[hlt.entity.Position(desireX, desireY)].is_occupied:
-                #If another ship is trying to move to this spot, then
-                #Try and temporarily switch the direction that the turtle is traveling.
-                # (This direction is prependicular to the current desired direction)
-                if switched is False:
-                    if dir == 0:
-                        newDir = 3
-                        desireX = x - 1
-                        desireY = y
-                    elif dir == 1:
-                        newDir = 0
-                        desireX = x
-                        desireY = y - 1
-                    elif dir == 2:
-                        newDir = 1
-                        desireX = x + 1
-                        desireY = y
-                    elif dir == 3:
-                        newDir = 2
-                        desireX = x
-                        desireY = y + 1
-                    switched = True
-                else:
-                    still = True
-                    break
-            else:
-                break
-
-        #Is another ship trying to move to this spot?
+    def willMove(self, x, y):
         for coord in move_list:
-            if desireX == coord[0] and desireY == coord[1]:
-                still = True
-                break
-
-        if still is True:
-            command_list.append(self.ship.stay_still())
-            # return False
-        else:
-            move_list.append((desireX, desireY))
-
-            if newDir == 0:
-                command_list.append(self.ship.move(Direction.North))
-                return
-            elif newDir == 1:
-                command_list.append(self.ship.move(Direction.East))
-                return
-            elif newDir == 2:
-                command_list.append(self.ship.move(Direction.South))
-                return
-            elif newDir == 3:
-                command_list.append(self.ship.move(Direction.West))
-                return
-        # move_list.append((desireX, desireY))
-        # return True
+            if x == coord[0] and y == coord[1]:
+                logging.info("Someone will move to:{}.".format((x,y)))
+                return True
+        return False
 
 def checkDead():
     if len(me.get_ships()) != len(ship_list):
@@ -224,6 +230,7 @@ def checkDead():
                     idFound = True
             if idFound is False:
                 ship_list.remove(myShip)
+                command_list = []
 
 while True:
     #Update the frame
@@ -232,11 +239,11 @@ while True:
     me = game.me
     game_map = game.game_map
 
+    checkDead()
+
     #Reset the command list
     command_list = []
     move_list = []
-
-    checkDead()
 
     safeSpawn = True
     for curShip in ship_list:
@@ -261,7 +268,7 @@ while True:
 
 
     #Spawn a new ship for this temp condition
-    if len(me.get_ships()) < 5 and me.halite_amount > 1000:
+    if len(me.get_ships()) < 8 and me.halite_amount > 1000:
         if game.game_map[hlt.entity.Position(me.shipyard.position.x, me.shipyard.position.y)].is_occupied is False and safeSpawn is True:
             command_list.append(me.shipyard.spawn())
             newSpawn = True
@@ -272,7 +279,8 @@ while True:
 
 
     for tempShip in ship_list:
-        tempShip.seek()
+        tempShip.seek2()
+
 
     # Send your moves back to the game environment, ending this turn.
     # tempMoves = []
