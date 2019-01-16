@@ -37,7 +37,7 @@ count = 10
 width = game.game_map.width
 height = game.game_map.height
 command_list = []
-ship_list = []
+ship_list = [] 
 target_list = []
 move_list = []
 
