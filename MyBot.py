@@ -43,6 +43,8 @@ move_list = []
 
 newSpawn = False
 shipRange = 6
+# global num_turns
+num_turns = 0
 
 
 class Miner:
@@ -54,6 +56,7 @@ class Miner:
         self.headingHome = False
         self.avoiding = False
         self.type = type
+        self.slam = False
 
     def target_highest(self):
         #Dont seek the new highest if we are already seeking a target (Adjust later to handle
@@ -189,6 +192,11 @@ class Miner:
             rand = randint(0, len(ideal_moves) - 1)
             desireX = ideal_moves[rand][0]
             desireY = ideal_moves[rand][1]
+
+            if self.slam is True and desireX == me.shipyard.position.x and desireY == me.shipyard.position.y:
+                command_list.append(self.ship.move(ideal_moves[rand][2]))
+                return
+
             #Is this not a safe move?
             if game.game_map[hlt.entity.Position(desireX, desireY)].is_occupied or self.willMove(desireX, desireY) is True:
                 del ideal_moves[rand]
@@ -268,7 +276,7 @@ def checkDead():
 
 def spawnShip():
     # Spawn a new ship for this temp condition
-    if len(me.get_ships()) < 15 and me.halite_amount > 1000:
+    if len(me.get_ships()) < 25 and me.halite_amount > 1000:
         if game.game_map[hlt.entity.Position(me.shipyard.position.x, me.shipyard.position.y)].is_occupied is False and safeSpawn is True:
             command_list.append(me.shipyard.spawn())
             newSpawn = True
@@ -276,6 +284,38 @@ def spawnShip():
             for i in me.get_ships():
                 tempList.append(i.id)
             logging.info("ship_list: {}".format(tempList))
+
+def defend():
+    if game.game_map[hlt.entity.Position(me.shipyard.position.x, me.shipyard.position.y)].is_occupied is True:
+        owned = False
+        for ship in ship_list:
+            if ship.ship.position.x == me.shipyard.position.x and ship.ship.position.y == me.shipyard.position.y:
+                owned = True
+                break
+
+        if owned is False:
+            command_list.append(me.shipyard.spawn())
+
+def slam():
+    global num_turns
+    if (300+25*width/8) - num_turns < 30:
+        for ship in ship_list:
+            ship.target_home()
+            ship.slam = True
+    num_turns += 1
+
+#For some reason my bot sometimes can't recognize when a ship dies...
+def pickMoves():
+    for move in command_list:
+        logging.info("Command: {}.".format(move))
+        split = move.split(" ")
+        try:
+            id = int(split[1])
+            if me.has_ship(id) is False:
+                command_list.remove(move)
+        except:
+            num = 0
+
 
 while True:
     #Update the frame
@@ -285,6 +325,7 @@ while True:
     game_map = game.game_map
 
     checkDead()
+
 
     #Reset the command list
     command_list = []
@@ -315,5 +356,9 @@ while True:
 
     for tempShip in ship_list:
         tempShip.seek2()
+
+    defend()
+    slam()
+    pickMoves()
 
     game.end_turn(command_list)
