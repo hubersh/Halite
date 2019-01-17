@@ -347,7 +347,7 @@ def spawnShip():
 
 
     # Spawn a new ship for this temp condition
-    if len(me.get_ships()) < totalShips and me.halite_amount > 2000 and num_turns / (300+25*width/8) < .60 :
+    if len(me.get_ships()) < totalShips and me.halite_amount > 2000 and num_turns / (300+25*width/8) < .50 :
         if game.game_map[hlt.entity.Position(me.shipyard.position.x, me.shipyard.position.y)].is_occupied is False and safeSpawn is True:
             command_list.append(me.shipyard.spawn())
             newSpawn = True
@@ -398,7 +398,7 @@ def numMiners():
 
     avg = sum / (width * height)
     global totalShips
-    totalShips = int (avg / 4)
+    totalShips = int (avg / 8)
 
 def getTotalRange(x, y, r):
     sum = 0
@@ -415,7 +415,7 @@ def getTotalRange(x, y, r):
                 highX = tempX
                 highY = tempY
 
-    return (highX, highY, sum)
+    return (x, y, sum)
 
 def determineDrop(r):
     highSum = 0
@@ -436,12 +436,12 @@ def spawnDrop():
     global settingDropOff, totalShips
     percent = num_turns / (300+25*width/8)
     if percent > .25 and percent < .65 and settingDropOff is False and me.halite_amount > 4000:
-        loc = determineDrop(shipRange)
+        loc = determineDrop(int(shipRange * 1.5))
         x = loc[0]
         y = loc[1]
         settingDropOff = True
         # shipRange = 7
-        totalShips = int(totalShips * 1.5)
+        totalShips = int(totalShips * 2)
         logging.info("Ideal drop: {}, {}".format(x, y))
 
         for ship in ship_list:
