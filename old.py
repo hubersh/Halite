@@ -50,7 +50,6 @@ num_turns = 0
 totalShips = 18
 slamBool = False
 settingDropOff = False
-dropCount = 0
 
 def calculateDistance(x1, y1, x2, y2):
     vals = math.pow(x2 - x1, 2) + math.pow(y2 - y1, 2)
@@ -123,17 +122,25 @@ class Miner:
         ideal_moves = []
         possible_moves = []
 
-
-        if x < self.targetX:
-            ideal_moves.append((x + 1, y, "e"))
-        if x  > self.targetX:
-            ideal_moves.append((x - 1, y, "w"))
-        if y  < self.targetY:
-            ideal_moves.append((x, y + 1, "s"))
-        if y > self.targetY:
-            ideal_moves.append((x, y - 1, "n"))
-
-
+        #Gather ideal moves
+        if self.headingHome is True:
+            if x < self.targetX:
+                ideal_moves.append((x + 1, y, "e"))
+            if y  < self.targetY:
+                ideal_moves.append((x, y + 1, "s"))
+            if x  > self.targetX:
+                ideal_moves.append((x - 1, y, "w"))
+            if y > self.targetY:
+                ideal_moves.append((x, y - 1, "n"))
+        else:
+            if x  > self.targetX:
+                ideal_moves.append((x - 1, y, "w"))
+            if y > self.targetY:
+                ideal_moves.append((x, y - 1, "n"))
+            if x < self.targetX:
+                ideal_moves.append((x + 1, y, "e"))
+            if y  < self.targetY:
+                ideal_moves.append((x, y + 1, "s"))
 
         #If our ideal moves are not valid, then pick from all possible moves
         if game.game_map[hlt.entity.Position(x + 1, y)].is_occupied is False and self.willMove(x + 1, y) is False:
@@ -151,8 +158,6 @@ class Miner:
             if self.dropOff is True:
                 if me.halite_amount > 4000:
                     command_list.append(self.ship.make_dropoff())
-                    global settingDropOff
-                    settingDropOff = False
                 else:
                     command_list.append(self.ship.stay_still())
                 return
@@ -331,9 +336,9 @@ def checkDead():
 
 def spawnShip():
     global slamBool
-    global settingDropOff
+
     safeSpawn = True
-    if game.game_map[hlt.entity.Position(me.shipyard.position.x, me.shipyard.position.y)].is_occupied is True or settingDropOff is True:
+    if game.game_map[hlt.entity.Position(me.shipyard.position.x, me.shipyard.position.y)].is_occupied is True:
         safeSpawn = False
     for move in move_list:
         if move[0] == me.shipyard.position.x and move[1] == me.shipyard.position.y:
@@ -342,7 +347,7 @@ def spawnShip():
 
 
     # Spawn a new ship for this temp condition
-    if len(me.get_ships()) < totalShips and me.halite_amount > 2000 and num_turns / (300+25*width/8) < .6 :
+    if len(me.get_ships()) < totalShips and me.halite_amount > 2000 and num_turns / (300+25*width/8) < .50 :
         if game.game_map[hlt.entity.Position(me.shipyard.position.x, me.shipyard.position.y)].is_occupied is False and safeSpawn is True:
             command_list.append(me.shipyard.spawn())
             newSpawn = True
@@ -410,7 +415,7 @@ def getTotalRange(x, y, r):
                 highX = tempX
                 highY = tempY
 
-    return (highX, highY, sum)
+    return (x, y, sum)
 
 def determineDrop(r):
     highSum = 0
@@ -419,27 +424,22 @@ def determineDrop(r):
     for x in range(r, width - r):
         for y in range(r, width - r):
             if game.game_map.calculate_distance(hlt.entity.Position(x, y), hlt.entity.Position(me.shipyard.position.x, me.shipyard.position.y)) <= shipRange:
-                tempList = getTotalRange(x, y, r)
-                tempSum = tempList[2]
+                tempSum = getTotalRange(x, y, r)[2]
                 if tempSum > highSum:
                     highSum = tempSum
-                    # highX =  getTotalRange(x, y, r)[0]
-                    # highY =  getTotalRange(x, y, r)[1]
-                    highX = tempList[0]
-                    highY = tempList[1]
+                    highX =  getTotalRange(x, y, r)[0]
+                    highY =  getTotalRange(x, y, r)[1]
     logging.info("Ideal drop: {}, {}".format(highX, highY))
     return (highX, highY)
 
 def spawnDrop():
-    global settingDropOff, totalShips, dropCount
+    global settingDropOff, totalShips
     percent = num_turns / (300+25*width/8)
-
-    if percent > .30 and settingDropOff is False and dropCount == 0:
-        loc = determineDrop(10)
+    if percent > .25 and percent < .65 and settingDropOff is False and me.halite_amount > 4000:
+        loc = determineDrop(int(shipRange * 1.5))
         x = loc[0]
         y = loc[1]
         settingDropOff = True
-        dropCount += 1
         # shipRange = 7
         totalShips = int(totalShips * 2)
         logging.info("Ideal drop: {}, {}".format(x, y))
