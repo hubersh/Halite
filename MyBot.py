@@ -155,7 +155,7 @@ class Miner:
             possible_moves.append((x, y - 1, "n"))
 
         #No ideal moves means we are standing on the target
-        if len(ideal_moves) == 0:
+        if len(ideal_moves) == 0: 
             #Are we a drop off?
             if self.dropOff is True:
                 if me.halite_amount > 4000:
