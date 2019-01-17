@@ -279,7 +279,7 @@ def checkDead():
 def spawnShip():
     global slamBool
     # Spawn a new ship for this temp condition
-    if len(me.get_ships()) < totalShips and me.halite_amount > 2000 and num_turns / (300+25*width/8) < .85 :
+    if len(me.get_ships()) < totalShips and me.halite_amount > 2000 and num_turns / (300+25*width/8) < .65 :
         if game.game_map[hlt.entity.Position(me.shipyard.position.x, me.shipyard.position.y)].is_occupied is False and safeSpawn is True and slamBool is False:
             command_list.append(me.shipyard.spawn())
             newSpawn = True
