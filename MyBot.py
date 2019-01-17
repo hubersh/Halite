@@ -18,6 +18,8 @@ import random
 import logging
 from random import randint
 
+import math
+
 """ <<<Game Begin>>> """
 
 # This game object contains the initial game state.
@@ -47,18 +49,23 @@ shipRange = 6
 num_turns = 0
 totalShips = 18
 slamBool = False
+settingDropOff = False
 
+def calculateDistance(x1, y1, x2, y2):
+    vals = math.pow(x2 - x1, 2) + math.pow(y2 - y1, 2)
+    return math.sqrt(vals)
 
 class Miner:
-    def __init__(self, shipId, type):
+    def __init__(self, shipId):
         self.targetX = 0
         self.targetY = 0
         self.ship = me.get_ship(shipId)
         self.hasTarget = False
         self.headingHome = False
-        self.avoiding = False
-        self.type = type
         self.slam = False
+        self.dropOff = False
+        self.avoid = False
+
 
     def target_highest(self):
         #Dont seek the new highest if we are already seeking a target (Adjust later to handle
@@ -70,10 +77,13 @@ class Miner:
             #Calculate the average value of halite in our range while looping
             sum = 0
             sumCount = 0
+            homeX = self.getHomeCoord()[0]
+            homeY = self.getHomeCoord()[1]
             for x in range(width):
                 for y in range(height):
                     tempAmount = game.game_map[hlt.entity.Position(x, y)].halite_amount
-                    distance = game.game_map.calculate_distance(hlt.entity.Position(me.shipyard.position.x, me.shipyard.position.y), hlt.entity.Position(x, y))
+                    # distance = game.game_map.calculate_distance(hlt.entity.Position(homeX, homeY), hlt.entity.Position(x, y))
+                    distance = calculateDistance(homeX, homeY, x, y)
                     if tempAmount > highest and distance <= shipRange and self.target_avoid(x, y) is True:
                         highest = tempAmount
                         highX = x
@@ -89,42 +99,11 @@ class Miner:
             self.hasTarget = True
             self.adjust_range(sum / sumCount)
 
-    def target_ideal(self):
-        if self.hasTarget is False:
-            minDistance = 1000000;
-            highX= 0
-            highY = 0
-            #Calculate the average value of halite in our range while looping
-            sum = 0
-            sumCount = 0
-            for x in range(width):
-                for y in range(height):
-                    tempAmount = game.game_map[hlt.entity.Position(x, y)].halite_amount
-                    distance = game.game_map.calculate_distance(hlt.entity.Position(me.shipyard.position.x, me.shipyard.position.y), hlt.entity.Position(x, y))
-                    if tempAmount > 30 and distance <= shipRange and self.target_avoid(x, y) is True and distance < minDistance:
-                        minDistance = distance
-                        highX = x
-                        highY = y
-
-                    #Calculate average
-                    if distance <= shipRange:
-                        sumCount += 1
-                        sum += tempAmount
-
-            self.targetX = highX
-            self.targetY = highY
-            target_list.append((highX, highY))
-            self.hasTarget = True
-            self.adjust_range(sum / sumCount)
-
-    #Seconds time is the charm?
+    #Second time is the charm?
     def seek2(self):
-        if self.type == 0:
-            self.target_highest()
-        else:
-            self.target_ideal()
 
-        self.avoiding = False
+        self.target_highest()
+        self.avoid = False
 
         x = self.ship.position.x
         y = self.ship.position.y
@@ -134,7 +113,7 @@ class Miner:
         if game.game_map[hlt.entity.Position(x, y)].halite_amount > 50 and self.ship.halite_amount < 999 and self.slam is False:
             command_list.append(self.ship.stay_still())
             return
-        if self.ship.halite_amount > 980:
+        if self.ship.halite_amount > 980 and self.setDropOff is False:
             if self.headingHome is False:
                 self.clearTarget()
                 self.target_home()
@@ -144,70 +123,24 @@ class Miner:
         possible_moves = []
 
         #Gather ideal moves
-        if x < self.targetX:
-            ideal_moves.append((x + 1, y, "e"))
-        if x  > self.targetX:
-            ideal_moves.append((x - 1, y, "w"))
-        if y  < self.targetY:
-            ideal_moves.append((x, y + 1, "s"))
-        if y > self.targetY:
-            ideal_moves.append((x, y - 1, "n"))
-
-        #No ideal moves means we are standing on the target
-        if len(ideal_moves) == 0:
-            #If we reached home...
-            if self.headingHome is True:
-                self.headingHome = False
-                self.hasTarget = False
-                return
-
-            if self.type == 0:
-                if self.ship.halite_amount > 980 or game.game_map[hlt.entity.Position(self.targetX, self.targetY)].halite_amount < 20:
-                    if self.headingHome is False:
-                        self.clearTarget()
-                        self.target_home()
-
-                #Otherwise continue to collect halite
-                else:
-                    command_list.append(self.ship.stay_still())
-                return
-
-            else:
-                if self.ship.halite_amount > 980:
-                    if self.headingHome is False:
-                        self.clearTarget()
-                        self.target_home()
-
-                # Space less than 20? Head to another
-                elif game.game_map[hlt.entity.Position(self.targetX, self.targetY)].halite_amount < 20:
-                    self.hasTarget = False
-                    self.clearTarget()
-                    self.target_ideal()
-
-                #Otherwise continue to collect halite
-                else:
-                    command_list.append(self.ship.stay_still())
-                return
-
-        #Pick a random valid move and see if we can move in that direction.
-        while len(ideal_moves) != 0:
-            rand = randint(0, len(ideal_moves) - 1)
-            desireX = ideal_moves[rand][0]
-            desireY = ideal_moves[rand][1]
-
-            if self.slam is True and desireX == me.shipyard.position.x and desireY == me.shipyard.position.y:
-                command_list.append(self.ship.move(ideal_moves[rand][2]))
-                return
-
-            #Is this not a safe move?
-            if game.game_map[hlt.entity.Position(desireX, desireY)].is_occupied or self.willMove(desireX, desireY) is True:
-                del ideal_moves[rand]
-
-            #If it is safe then just move there.
-            else:
-                command_list.append(self.ship.move(ideal_moves[rand][2]))
-                move_list.append((desireX, desireY))
-                return
+        if self.headingHome is True:
+            if x < self.targetX:
+                ideal_moves.append((x + 1, y, "e"))
+            if y  < self.targetY:
+                ideal_moves.append((x, y + 1, "s"))
+            if x  > self.targetX:
+                ideal_moves.append((x - 1, y, "w"))
+            if y > self.targetY:
+                ideal_moves.append((x, y - 1, "n"))
+        else:
+            if x  > self.targetX:
+                ideal_moves.append((x - 1, y, "w"))
+            if y > self.targetY:
+                ideal_moves.append((x, y - 1, "n"))
+            if x < self.targetX:
+                ideal_moves.append((x + 1, y, "e"))
+            if y  < self.targetY:
+                ideal_moves.append((x, y + 1, "s"))
 
         #If our ideal moves are not valid, then pick from all possible moves
         if game.game_map[hlt.entity.Position(x + 1, y)].is_occupied is False and self.willMove(x + 1, y) is False:
@@ -219,21 +152,141 @@ class Miner:
         if game.game_map[hlt.entity.Position(x, y - 1)].is_occupied is False and self.willMove(x, y - 1) is False:
             possible_moves.append((x, y - 1, "n"))
 
+        #No ideal moves means we are standing on the target
+        if len(ideal_moves) == 0:
+            #Are we a drop off?
+            if self.dropOff is True:
+                if me.halite_amount > 4000:
+                    command_list.append(self.ship.make_dropoff())
+                else:
+                    command_list.append(self.ship.stay_still())
+                return
+
+            #If we reached home...
+            if self.headingHome is True:
+                self.headingHome = False
+                self.hasTarget = False
+                return
+
+
+            if self.ship.halite_amount > 980 or game.game_map[hlt.entity.Position(self.targetX, self.targetY)].halite_amount < 20:
+                if self.headingHome is False:
+                    self.clearTarget()
+                    self.target_home()
+
+            #Otherwise continue to collect halite
+            else:
+                command_list.append(self.ship.stay_still())
+            return
+
+        #Pick a random ideal move and see if we can move in that direction.
+        # while len(ideal_moves) != 0:
+        #     rand = randint(0, len(ideal_moves) - 1)
+        #     desireX = ideal_moves[rand][0]
+        #     desireY = ideal_moves[rand][1]
+        #
+        #     if self.slam is True and desireX == self.getHomeCoord()[0] and desireY == self.getHomeCoord()[1]:
+        #         command_list.append(self.ship.move(ideal_moves[rand][2]))
+        #         return
+        #
+        #     #Is this not a safe move?
+        #     if game.game_map[hlt.entity.Position(desireX, desireY)].is_occupied or self.willMove(desireX, desireY) is True:
+        #         del ideal_moves[rand]
+        #
+        #     #If it is safe then just move there.
+        #     else:
+        #         command_list.append(self.ship.move(ideal_moves[rand][2]))
+        #         move_list.append((desireX, desireY))
+        #         return
+        #
+        for move in ideal_moves:
+            desireX = move[0]
+            desireY = move[1]
+
+            if self.slam is True and desireX == self.getHomeCoord()[0] and desireY == self.getHomeCoord()[1]:
+                command_list.append(self.ship.move(move[2]))
+                # self.avoid = True
+                return
+
+            if game.game_map[hlt.entity.Position(desireX, desireY)].is_occupied:
+                for s in ship_list:
+                    if s.ship.position.x == desireX and s.ship.position.y == desireY:
+                        if s.avoid is True:
+                            command_list.append(self.ship.stay_still())
+                            return
+
+            #Is this not a safe move?
+            if self.willMove(desireX, desireY) is True or game.game_map[hlt.entity.Position(desireX, desireY)].is_occupied:
+                ideal_moves.remove(move)
+
+            #If it is safe then just move there.
+            else:
+                command_list.append(self.ship.move(move[2]))
+                move_list.append((desireX, desireY))
+                self.avoid = True
+                return
+
         #If there are no possible moves then just stay still
         if len(possible_moves) == 0:
             command_list.append(self.ship.stay_still())
         else:
+            self.avoid = True
             rand = randint(0, len(possible_moves) - 1)
             command_list.append(self.ship.move(possible_moves[rand][2]))
             move_list.append((possible_moves[rand][0], possible_moves[rand][1]))
 
+    def isOpposite(self, newDir, dirs):
+        for d in dirs:
+            if newDir == "s":
+                if d[2] == "n":
+                    return True
+            if newDir == "n":
+                if d[2] == "s":
+                    return True
+            if newDir == "e":
+                if d[2] == "w":
+                    return True
+            if newDir == "w":
+                if d[2] == "e":
+                    return True
+        return False
+
+
     def target_home(self):
-        self.targetX = me.shipyard.position.x
-        self.targetY = me.shipyard.position.y
+        x = me.shipyard.position.x
+        y = me.shipyard.position.y
+        # distance = game.game_map.calculate_distance(hlt.entity.Position(x, y), hlt.entity.Position(self.ship.position.x, self.ship.position.y))
+        distance = calculateDistance(x, y, self.ship.position.x, self.ship.position.y)
+        for drop in me.get_dropoffs():
+            # tempDistance = game.game_map.calculate_distance(hlt.entity.Position(drop.position.x, drop.position.y), hlt.entity.Position(self.ship.position.x, self.ship.position.y))
+            tempDistance = calculateDistance(self.ship.position.x, self.ship.position.y, drop.position.x, drop.position.y)
+            if tempDistance < distance:
+                distance = tempDistance
+                x = drop.position.x
+                y = drop.position.y
+
+        self.targetX = x
+        self.targetY = y
         self.headingHome = True
 
+    def getHomeCoord(self):
+        x = me.shipyard.position.x
+        y = me.shipyard.position.y
+        # distance = game.game_map.calculate_distance(hlt.entity.Position(x, y), hlt.entity.Position(self.ship.position.x, self.ship.position.y))
+        distance = calculateDistance(x, y, self.ship.position.x, self.ship.position.y)
+        for drop in me.get_dropoffs():
+            # tempDistance = game.game_map.calculate_distance(hlt.entity.Position(drop.position.x, drop.position.y), hlt.entity.Position(self.ship.position.x, self.ship.position.y))
+            tempDistance = calculateDistance(self.ship.position.x, self.ship.position.y, drop.position.x, drop.position.y)
+
+            if tempDistance < distance:
+                distance = tempDistance
+                x = drop.position.x
+                y = drop.position.y
+
+        return (x, y)
+
     def adjust_range(self, avg):
-        if avg < 100:
+        if avg < 85:
             global shipRange
             shipRange += 1
             logging.info("Range extended to: {}.".format(shipRange))
@@ -262,6 +315,11 @@ class Miner:
             if self.targetX == coord[0] and self.targetY == coord[1]:
                 target_list.remove(coord)
 
+    def setDropOff(self, x, y):
+        self.dropOff = True
+        self.targetX = x
+        self.targetY = y
+
 
 def checkDead():
     if len(me.get_ships()) != len(ship_list):
@@ -289,7 +347,7 @@ def spawnShip():
 
 
     # Spawn a new ship for this temp condition
-    if len(me.get_ships()) < totalShips and me.halite_amount > 2000 and num_turns / (300+25*width/8) < .65 :
+    if len(me.get_ships()) < totalShips and me.halite_amount > 2000 and num_turns / (300+25*width/8) < .60 :
         if game.game_map[hlt.entity.Position(me.shipyard.position.x, me.shipyard.position.y)].is_occupied is False and safeSpawn is True:
             command_list.append(me.shipyard.spawn())
             newSpawn = True
@@ -313,7 +371,8 @@ def slam():
     global slamBool
     global num_turns
     for ship in ship_list:
-        distance = game.game_map.calculate_distance(hlt.entity.Position(me.shipyard.position.x, me.shipyard.position.y), hlt.entity.Position(ship.ship.position.x, ship.ship.position.y))
+        # distance = game.game_map.calculate_distance(hlt.entity.Position(me.shipyard.position.x, me.shipyard.position.y), hlt.entity.Position(ship.ship.position.x, ship.ship.position.y))
+        distance = calculateDistance(ship.ship.position.x, ship.ship.position.y, me.shipyard.position.x, me.shipyard.position.y)
         if (300+25*width/8) - num_turns < distance * 2:
             ship.target_home()
             ship.slam = True
@@ -339,7 +398,56 @@ def numMiners():
 
     avg = sum / (width * height)
     global totalShips
-    totalShips = int (avg / 8)
+    totalShips = int (avg / 4)
+
+def getTotalRange(x, y, r):
+    sum = 0
+    highX = 0
+    highY = 0
+    maxAmt = 0
+    for tempX in range(x - r, x + r):
+        for tempY in range(y - r, y + r):
+            amt = game.game_map[hlt.entity.Position(tempX, tempY)].halite_amount
+            sum += amt
+
+            if amt > maxAmt:
+                maxAmt = amt
+                highX = tempX
+                highY = tempY
+
+    return (highX, highY, sum)
+
+def determineDrop(r):
+    highSum = 0
+    highX = 0
+    highY = 0
+    for x in range(r, width - r):
+        for y in range(r, width - r):
+            if game.game_map.calculate_distance(hlt.entity.Position(x, y), hlt.entity.Position(me.shipyard.position.x, me.shipyard.position.y)) <= shipRange:
+                tempSum = getTotalRange(x, y, r)[2]
+                if tempSum > highSum:
+                    highSum = tempSum
+                    highX =  getTotalRange(x, y, r)[0]
+                    highY =  getTotalRange(x, y, r)[1]
+    logging.info("Ideal drop: {}, {}".format(highX, highY))
+    return (highX, highY)
+
+def spawnDrop():
+    global settingDropOff, totalShips
+    percent = num_turns / (300+25*width/8)
+    if percent > .25 and percent < .65 and settingDropOff is False and me.halite_amount > 4000:
+        loc = determineDrop(shipRange)
+        x = loc[0]
+        y = loc[1]
+        settingDropOff = True
+        # shipRange = 7
+        totalShips = int(totalShips * 1.5)
+        logging.info("Ideal drop: {}, {}".format(x, y))
+
+        for ship in ship_list:
+            if ship.ship.position.x != me.shipyard.position.x and ship.ship.position.y != me.shipyard.position.y:
+                ship.setDropOff(x, y)
+                return
 
 numMiners()
 
@@ -369,7 +477,7 @@ while True:
                     found = True
                     break
             if found is False:
-                ship_list.append(Miner(newShip.id, 0))
+                ship_list.append(Miner(newShip.id))
         newSpawn = False
 
     for tempShip in ship_list:
@@ -379,6 +487,7 @@ while True:
 
     defend()
     slam()
+    spawnDrop()
     pickMoves()
 
     game.end_turn(command_list)
