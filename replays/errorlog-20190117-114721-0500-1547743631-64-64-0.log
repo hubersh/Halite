@@ -1,0 +1,527 @@
+
+Turn 25
+================================================================
+warning: entity 6 was directed to use 4 halite to move north, but only 0 halite was available
+At command 4 of 4:
+    2   m 3 o
+    3   m 5 o
+>>> 4   m 6 n
+
+
+Turn 47
+================================================================
+warning: entity 5 was directed to use 3 halite to move north, but only 0 halite was available
+At command 3 of 5:
+    1   m 1 s
+    2   m 3 o
+>>> 3   m 5 n
+    4   m 6 o
+    5   g
+
+
+Turn 50
+================================================================
+warning: entity 7 was directed to use 4 halite to move north, but only 0 halite was available
+At command 5 of 5:
+    3   m 5 o
+    4   m 6 o
+>>> 5   m 7 n
+
+
+Turn 53
+================================================================
+warning: entity 1 was directed to use 2 halite to move north, but only 0 halite was available
+At command 1 of 6:
+>>> 1   m 1 n
+    2   m 3 e
+    3   m 5 o
+
+
+Turn 54
+================================================================
+warning: entity 7 was directed to use 4 halite to move north, but only 2 halite was available
+At command 5 of 6:
+    3   m 5 o
+    4   m 6 o
+>>> 5   m 7 n
+    6   m 8 e
+
+
+Turn 55
+================================================================
+warning: entity 8 was directed to use 1 halite to move east, but only 0 halite was available
+At command 5 of 5:
+    3   m 6 e
+    4   m 7 n
+>>> 5   m 8 e
+
+
+Turn 68
+================================================================
+warning: entity 3 was directed to use 1 halite to move north, but only 0 halite was available
+At command 2 of 7:
+    1   m 1 o
+>>> 2   m 3 n
+    3   m 5 o
+    4   m 6 o
+
+
+Turn 71
+================================================================
+warning: entity 3 was directed to use 4 halite to move north, but only 0 halite was available
+At command 2 of 7:
+    1   m 1 e
+>>> 2   m 3 n
+    3   m 5 e
+    4   m 6 s
+
+warning: entity 11 was directed to use 4 halite to move south, but only 0 halite was available
+At command 7 of 7:
+    5   m 7 o
+    6   m 8 o
+>>> 7   m 11 s
+
+
+Turn 74
+================================================================
+warning: entity 6 was directed to use 1 halite to move east, but only 0 halite was available
+At command 4 of 8:
+    2   m 3 n
+    3   m 5 o
+>>> 4   m 6 e
+    5   m 7 o
+    6   m 8 o
+
+
+Turn 77
+================================================================
+warning: entity 13 was directed to use 1 halite to move east, but only 0 halite was available
+At command 8 of 8:
+    6   m 8 o
+    7   m 11 o
+>>> 8   m 13 e
+
+
+Turn 80
+================================================================
+warning: entity 13 was directed to use 4 halite to move south, but only 1 halite was available
+At command 8 of 8:
+    6   m 8 e
+    7   m 11 n
+>>> 8   m 13 s
+
+
+Turn 93
+================================================================
+warning: entity 8 was directed to use 3 halite to move north, but only 0 halite was available
+At command 5 of 8:
+    3   m 5 w
+    4   m 6 o
+>>> 5   m 8 n
+    6   m 11 o
+    7   m 13 e
+
+
+Turn 95
+================================================================
+warning: entity 15 was directed to use 3 halite to move north, but only 0 halite was available
+At command 7 of 7:
+    5   m 11 e
+    6   m 13 w
+>>> 7   m 15 n
+
+
+Turn 97
+================================================================
+warning: entity 8 was directed to use 3 halite to move east, but only 1 halite was available
+At command 6 of 9:
+    4   m 6 o
+    5   m 7 w
+>>> 6   m 8 e
+    7   m 11 o
+    8   m 13 n
+
+
+Turn 99
+================================================================
+warning: entity 1 was directed to use 3 halite to move east, but only 0 halite was available
+At command 1 of 10:
+>>> 1   m 1 e
+    2   m 3 e
+    3   m 5 n
+
+
+Turn 100
+================================================================
+warning: entity 16 was directed to use 3 halite to move east, but only 0 halite was available
+At command 10 of 10:
+    8   m 13 w
+    9   m 15 o
+>>> 10   m 16 e
+
+
+Turn 101
+================================================================
+warning: entity 8 was directed to use 4 halite to move south, but only 1 halite was available
+At command 5 of 9:
+    3   m 5 o
+    4   m 7 o
+>>> 5   m 8 s
+    6   m 11 o
+    7   m 13 w
+
+
+Turn 103
+================================================================
+warning: entity 1 was directed to use 4 halite to move east, but only 0 halite was available
+At command 1 of 10:
+>>> 1   m 1 e
+    2   m 3 e
+    3   m 5 o
+
+warning: entity 6 was directed to use 2 halite to move west, but only 0 halite was available
+At command 4 of 10:
+    2   m 3 e
+    3   m 5 o
+>>> 4   m 6 w
+    5   m 7 e
+    6   m 8 e
+
+
+Turn 105
+================================================================
+warning: entity 8 was directed to use 4 halite to move east, but only 1 halite was available
+At command 6 of 10:
+    4   m 6 o
+    5   m 7 n
+>>> 6   m 8 e
+    7   m 11 o
+    8   m 13 w
+
+
+Turn 106
+================================================================
+warning: entity 13 was directed to use 3 halite to move west, but only 0 halite was available
+At command 8 of 10:
+    6   m 8 e
+    7   m 11 o
+>>> 8   m 13 w
+    9   m 15 o
+    10   m 16 o
+
+
+Turn 116
+================================================================
+warning: entity 5 was directed to use 4 halite to move east, but only 0 halite was available
+At command 3 of 9:
+    1   m 1 o
+    2   m 3 o
+>>> 3   m 5 e
+    4   m 6 e
+    5   m 8 o
+
+
+Turn 120
+================================================================
+warning: entity 7 was directed to use 1 halite to move south, but only 0 halite was available
+At command 3 of 8:
+    1   m 3 o
+    2   m 5 o
+>>> 3   m 7 s
+    4   m 8 o
+    5   m 11 o
+
+
+Turn 122
+================================================================
+warning: entity 6 was directed to use 2 halite to move west, but only 0 halite was available
+At command 4 of 10:
+    2   m 3 e
+    3   m 5 o
+>>> 4   m 6 w
+    5   m 7 s
+    6   m 8 w
+
+
+Turn 124
+================================================================
+warning: entity 7 was directed to use 2 halite to move east, but only 0 halite was available
+At command 5 of 11:
+    3   m 5 o
+    4   m 6 s
+>>> 5   m 7 e
+    6   m 8 w
+    7   m 11 e
+
+
+Turn 126
+================================================================
+warning: entity 19 was directed to use 1 halite to move north, but only 0 halite was available
+At command 11 of 11:
+    9   m 15 o
+    10   m 16 w
+>>> 11   m 19 n
+
+
+Turn 127
+================================================================
+warning: entity 7 was directed to use 3 halite to move east, but only 2 halite was available
+At command 5 of 10:
+    3   m 5 o
+    4   m 6 o
+>>> 5   m 7 e
+    6   m 8 o
+    7   m 13 o
+
+
+Turn 129
+================================================================
+warning: entity 11 was directed to use 1 halite to move south, but only 0 halite was available
+At command 7 of 11:
+    5   m 7 e
+    6   m 8 w
+>>> 7   m 11 s
+    8   m 13 e
+    9   m 15 o
+
+warning: entity 19 was directed to use 4 halite to move north, but only 2 halite was available
+At command 11 of 11:
+    9   m 15 o
+    10   m 16 n
+>>> 11   m 19 n
+
+
+Turn 132
+================================================================
+warning: entity 11 was directed to use 4 halite to move east, but only 2 halite was available
+At command 7 of 11:
+    5   m 7 o
+    6   m 8 o
+>>> 7   m 11 e
+    8   m 13 n
+    9   m 15 w
+
+
+Turn 133
+================================================================
+warning: entity 1 was directed to use 1 halite to move south, but only 0 halite was available
+At command 1 of 11:
+>>> 1   m 1 s
+    2   m 3 o
+    3   m 5 o
+
+
+Turn 140
+================================================================
+warning: entity 8 was directed to use 3 halite to move west, but only 0 halite was available
+At command 6 of 11:
+    4   m 6 o
+    5   m 7 o
+>>> 6   m 8 w
+    7   m 11 o
+    8   m 13 s
+
+
+Turn 141
+================================================================
+warning: entity 16 was directed to use 1 halite to move west, but only 0 halite was available
+At command 10 of 11:
+    8   m 13 s
+    9   m 15 s
+>>> 10   m 16 w
+    11   m 19 o
+
+
+Turn 147
+================================================================
+warning: entity 5 was directed to use 3 halite to move west, but only 0 halite was available
+At command 3 of 10:
+    1   m 1 o
+    2   m 3 n
+>>> 3   m 5 w
+    4   m 6 s
+    5   m 8 o
+
+
+Turn 152
+================================================================
+warning: entity 6 was directed to use 4 halite to move north, but only 0 halite was available
+At command 4 of 10:
+    2   m 3 o
+    3   m 5 o
+>>> 4   m 6 n
+    5   m 7 o
+    6   m 8 e
+
+
+Turn 154
+================================================================
+warning: entity 13 was directed to use 1 halite to move north, but only 0 halite was available
+At command 8 of 11:
+    6   m 8 s
+    7   m 11 o
+>>> 8   m 13 n
+    9   m 15 n
+    10   m 16 e
+
+
+Turn 156
+================================================================
+warning: entity 15 was directed to use 2 halite to move north, but only 0 halite was available
+At command 8 of 10:
+    6   m 8 s
+    7   m 13 s
+>>> 8   m 15 n
+    9   m 16 o
+    10   m 19 o
+
+
+Turn 160
+================================================================
+warning: entity 13 was directed to use 3 halite to move east, but only 2 halite was available
+At command 7 of 10:
+    5   m 8 s
+    6   m 11 w
+>>> 7   m 13 e
+    8   m 15 w
+    9   m 16 e
+
+
+Turn 162
+================================================================
+warning: entity 7 was directed to use 4 halite to move west, but only 0 halite was available
+At command 4 of 10:
+    2   m 5 e
+    3   m 6 o
+>>> 4   m 7 w
+    5   m 8 o
+    6   m 11 s
+
+
+Turn 168
+================================================================
+warning: entity 8 was directed to use 1 halite to move east, but only 0 halite was available
+At command 5 of 10:
+    3   m 6 o
+    4   m 7 o
+>>> 5   m 8 e
+    6   m 11 e
+    7   m 13 o
+
+
+Turn 171
+================================================================
+warning: entity 1 was directed to use 2 halite to move north, but only 0 halite was available
+At command 1 of 7:
+>>> 1   m 1 n
+    2   m 5 w
+    3   m 7 o
+
+
+Turn 172
+================================================================
+warning: entity 8 was directed to use 4 halite to move east, but only 1 halite was available
+At command 5 of 10:
+    3   m 6 e
+    4   m 7 o
+>>> 5   m 8 e
+    6   m 11 n
+    7   m 13 w
+
+
+Turn 174
+================================================================
+warning: entity 1 was directed to use 3 halite to move north, but only 1 halite was available
+At command 1 of 9:
+>>> 1   m 1 n
+    2   m 5 o
+    3   m 6 o
+
+
+Turn 176
+================================================================
+warning: entity 16 was directed to use 1 halite to move south, but only 0 halite was available
+At command 9 of 10:
+    7   m 13 n
+    8   m 15 s
+>>> 9   m 16 s
+    10   m 19 e
+
+
+Turn 177
+================================================================
+warning: entity 11 was directed to use 1 halite to move north, but only 0 halite was available
+At command 6 of 9:
+    4   m 7 n
+    5   m 8 o
+>>> 6   m 11 n
+    7   m 15 w
+    8   m 16 s
+
+
+Turn 179
+================================================================
+warning: entity 16 was directed to use 4 halite to move south, but only 0 halite was available
+At command 9 of 10:
+    7   m 13 e
+    8   m 15 o
+>>> 9   m 16 s
+    10   m 19 s
+
+
+Turn 180
+================================================================
+warning: entity 11 was directed to use 3 halite to move east, but only 0 halite was available
+At command 5 of 9:
+    3   m 7 e
+    4   m 8 o
+>>> 5   m 11 e
+    6   m 13 e
+    7   m 15 e
+
+warning: entity 13 was directed to use 3 halite to move east, but only 0 halite was available
+At command 6 of 9:
+    4   m 8 o
+    5   m 11 e
+>>> 6   m 13 e
+    7   m 15 e
+    8   m 16 s
+
+
+Turn 183
+================================================================
+warning: entity 13 was directed to use 4 halite to move east, but only 3 halite was available
+At command 7 of 10:
+    5   m 8 o
+    6   m 11 e
+>>> 7   m 13 e
+    8   m 15 e
+    9   m 16 e
+
+
+Turn 184
+================================================================
+warning: entity 6 was directed to use 1 halite to move north, but only 0 halite was available
+At command 2 of 9:
+    1   m 1 n
+>>> 2   m 6 n
+    3   m 7 n
+    4   m 8 o
+
+warning: entity 11 was directed to use 1 halite to move east, but only 0 halite was available
+At command 5 of 9:
+    3   m 7 n
+    4   m 8 o
+>>> 5   m 11 e
+    6   m 13 e
+    7   m 15 s
+
+
+Turn 185
+================================================================
+error: entity 1 was directed to construct at (16, 24), but that cell was already owned by player 0
+At command 1 of 9:
+>>> 1   c 1
+    2   m 5 o
+    3   m 6 n
+
