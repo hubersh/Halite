@@ -278,9 +278,19 @@ def checkDead():
 
 def spawnShip():
     global slamBool
+
+    safeSpawn = True
+    if game.game_map[hlt.entity.Position(me.shipyard.position.x, me.shipyard.position.y)].is_occupied is True:
+        safeSpawn = False
+    for move in move_list:
+        if move[0] == me.shipyard.position.x and move[1] == me.shipyard.position.y:
+            safeSpawn = False
+            break
+
+
     # Spawn a new ship for this temp condition
     if len(me.get_ships()) < totalShips and me.halite_amount > 2000 and num_turns / (300+25*width/8) < .65 :
-        if game.game_map[hlt.entity.Position(me.shipyard.position.x, me.shipyard.position.y)].is_occupied is False and safeSpawn is True and slamBool is False:
+        if game.game_map[hlt.entity.Position(me.shipyard.position.x, me.shipyard.position.y)].is_occupied is False and safeSpawn is True:
             command_list.append(me.shipyard.spawn())
             newSpawn = True
             tempList = []
@@ -302,12 +312,11 @@ def defend():
 def slam():
     global slamBool
     global num_turns
-    if (300+25*width/8) - num_turns < 30:
-        slamBool = True
-        for ship in ship_list:
+    for ship in ship_list:
+        distance = game.game_map.calculate_distance(hlt.entity.Position(me.shipyard.position.x, me.shipyard.position.y), hlt.entity.Position(ship.ship.position.x, ship.ship.position.y))
+        if (300+25*width/8) - num_turns < distance * 2:
             ship.target_home()
             ship.slam = True
-
     num_turns += 1
 
 #For some reason my bot sometimes can't recognize when a ship dies...
@@ -348,12 +357,6 @@ while True:
     command_list = []
     move_list = []
 
-    safeSpawn = True
-    for curShip in ship_list:
-        if game.game_map.calculate_distance(hlt.entity.Position(curShip.ship.position.x, curShip.ship.position.y), hlt.entity.Position(me.shipyard.position.x, me.shipyard.position.y)) < 1.5:
-            safeSpawn = False
-            break
-
     #Check if there was a new spawned ship, and add it to the ship object list.
     # if newSpawn is True:
     #     ship_list.append(Miner(me.get_ships()[0].id))
@@ -369,10 +372,10 @@ while True:
                 ship_list.append(Miner(newShip.id, 0))
         newSpawn = False
 
-    spawnShip()
-
     for tempShip in ship_list:
         tempShip.seek2()
+
+    spawnShip()
 
     defend()
     slam()
