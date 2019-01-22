@@ -27,7 +27,7 @@ game = hlt.Game()
 # At this point "game" variable is populated with initial map data.
 # This is a good place to do computationally expensive start-up pre-processing.
 # As soon as you call "ready" function below, the 2 second per turn timer will start.
-game.ready("MyPythonBot")
+game.ready("New")
 
 # Now that your bot is initialized, save a message to yourself in the log file with some important information.
 #   Here, you log here your id, which you can always fetch from the game object by using my_id.
@@ -51,6 +51,8 @@ totalShips = 18
 slamBool = False
 settingDropOff = False
 dropCount = 0
+currentDrop = None
+
 
 def calculateDistance(x1, y1, x2, y2):
     vals = math.pow(x2 - x1, 2) + math.pow(y2 - y1, 2)
@@ -79,6 +81,7 @@ class Miner:
         self.slam = False
         self.dropOff = False
         self.avoid = False
+        self.minPickUp = 50
 
 
     def target_highest(self):
@@ -96,15 +99,45 @@ class Miner:
             homeY = tempDrop.y
             for x in range(homeX - tempDrop.dropRange, homeX + tempDrop.dropRange):
                 for y in range(homeY - tempDrop.dropRange, homeY + tempDrop.dropRange):
-                    tempAmount = game.game_map[hlt.entity.Position(x, y)].halite_amount
-                    # distance = game.game_map.calculate_distance(hlt.entity.Position(homeX, homeY), hlt.entity.Position(x, y))
-                    distance = calculateDistance(homeX, homeY, x, y)
-                    if tempAmount > highest and self.target_avoid(x, y) is True:
-                        highest = tempAmount
-                        highX = x
-                        highY = y
-                    sumCount += 1
-                    sum += tempAmount
+                    if x >= 0 and x <= width and y >= 0 and y <= height:
+                        tempAmount = game.game_map[hlt.entity.Position(x, y)].halite_amount
+                        # distance = game.game_map.calculate_distance(hlt.entity.Position(homeX, homeY), hlt.entity.Position(x, y))
+                        distance = calculateDistance(homeX, homeY, x, y)
+                        if tempAmount > highest and self.target_avoid(x, y) is True:
+                            highest = tempAmount
+                            highX = x
+                            highY = y
+                        sumCount += 1
+                        sum += tempAmount
+
+            self.targetX = highX
+            self.targetY = highY
+            target_list.append((highX, highY))
+            self.hasTarget = True
+            tempDrop.adjust_range(sum / sumCount)
+
+    def target_highest2(self):
+        #Dont seek the new highest if we are already seeking a target (Adjust later to handle
+        #things like a differnt ship taking a space and such...)
+        if self.hasTarget is False:
+            highX= 0
+            highY = 0
+            #Calculate the average value of halite in our range while looping
+            sum = 0
+            sumCount = 0
+            tempDrop = self.getHomeDrop()
+            homeX = tempDrop.x
+            homeY = tempDrop.y
+            for x in range(homeX - tempDrop.dropRange, homeX + tempDrop.dropRange):
+                for y in range(homeY - tempDrop.dropRange, homeY + tempDrop.dropRange):
+                    if x >= 0 and x <= width and y >= 0 and y <= height:
+                        tempAmount = game.game_map[hlt.entity.Position(x, y)].halite_amount
+
+                        if tempAmount > 200 and self.target_avoid(x, y) is True:
+                            highX = x
+                            highY = y
+                        sumCount += 1
+                        sum += tempAmount
 
             self.targetX = highX
             self.targetY = highY
@@ -114,7 +147,7 @@ class Miner:
 
     #Second time is the charm?
     def seek2(self):
-
+        # self.adjustMinPick()
         self.target_highest()
         self.avoid = False
 
@@ -123,7 +156,7 @@ class Miner:
         desireX = x
         desireY = y
 
-        if game.game_map[hlt.entity.Position(x, y)].halite_amount > 50 and self.ship.halite_amount < 999 and self.slam is False:
+        if game.game_map[hlt.entity.Position(x, y)].halite_amount > self.minPickUp and self.ship.halite_amount < 999 and self.slam is False:
             command_list.append(self.ship.stay_still())
             return
         if self.ship.halite_amount > 980 and self.setDropOff is False:
@@ -165,8 +198,8 @@ class Miner:
             if self.dropOff is True:
                 if me.halite_amount > 4000:
                     command_list.append(self.ship.make_dropoff())
-                    global settingDropOff
-                    settingDropOff = False
+                    # global settingDropOff
+                    # settingDropOff = False
                 else:
                     command_list.append(self.ship.stay_still())
                 return
@@ -195,15 +228,20 @@ class Miner:
 
             if self.slam is True and desireX == tempDrop.x and desireY == tempDrop.y:
                 command_list.append(self.ship.move(move[2]))
-                # self.avoid = True
                 return
 
             if game.game_map[hlt.entity.Position(desireX, desireY)].is_occupied:
+                found = False
                 for s in ship_list:
                     if s.ship.position.x == desireX and s.ship.position.y == desireY:
-                        if s.avoid is True:
+                        found = True
+                        #Y is to make sure that they will only move randomly if they are not lined up on the ideal Y axis.
+                        if (self.headingHome is True and s.headingHome is False and self.ship.position.y == me.shipyard.position.y) or s.avoid is True:
                             command_list.append(self.ship.stay_still())
                             return
+                if found is False and desireX == me.shipyard.position.x and desireY == me.shipyard.position.y:
+                    command_list.append(self.ship.move(move[2]))
+                    return
 
             #Is this not a safe move?
             if self.willMove(desireX, desireY) is True or game.game_map[hlt.entity.Position(desireX, desireY)].is_occupied:
@@ -244,6 +282,7 @@ class Miner:
 
     def target_home(self):
         tempDrop = self.getHomeDrop()
+        self.clearTarget()
 
         self.targetX = tempDrop.x
         self.targetY = tempDrop.y
@@ -294,6 +333,14 @@ class Miner:
         self.targetX = x
         self.targetY = y
 
+    def adjustMinPick(self):
+        temp = self.getHomeDrop()
+        if temp.dropRange > 11:
+            self.minPickUp = 15
+        else:
+            self.minPickUp = 50
+
+
 
 def checkDead():
     if len(me.get_ships()) != len(ship_list):
@@ -321,7 +368,7 @@ def spawnShip():
 
 
     # Spawn a new ship for this temp condition
-    if len(me.get_ships()) < totalShips and me.halite_amount > 2000 and num_turns / (300+25*width/8) < .6 :
+    if len(me.get_ships()) < totalShips and me.halite_amount >= 1000 and num_turns / (300+25*width/8) < .6 :
         if game.game_map[hlt.entity.Position(me.shipyard.position.x, me.shipyard.position.y)].is_occupied is False and safeSpawn is True:
             command_list.append(me.shipyard.spawn())
             newSpawn = True
@@ -347,7 +394,7 @@ def slam():
     for ship in ship_list:
         # distance = game.game_map.calculate_distance(hlt.entity.Position(me.shipyard.position.x, me.shipyard.position.y), hlt.entity.Position(ship.ship.position.x, ship.ship.position.y))
         distance = calculateDistance(ship.ship.position.x, ship.ship.position.y, me.shipyard.position.x, me.shipyard.position.y)
-        if (300+25*width/8) - num_turns < distance * 2:
+        if (300+25*width/8) - num_turns < distance * 2.3:
             ship.target_home()
             ship.slam = True
     num_turns += 1
@@ -372,7 +419,7 @@ def numMiners():
 
     avg = sum / (width * height)
     global totalShips
-    totalShips = int (avg / 7)
+    totalShips = int (avg / 8)
 
 def getTotalRange(x, y, r):
     sum = 0
@@ -397,23 +444,32 @@ def determineDrop(r):
     highY = 0
     for x in range(r, width - r):
         for y in range(r, width - r):
-            if game.game_map.calculate_distance(hlt.entity.Position(x, y), hlt.entity.Position(me.shipyard.position.x, me.shipyard.position.y)) <= width * 0.20:
+            safe = True
+            for d in drop_list:
+                if game.game_map.calculate_distance(hlt.entity.Position(x, y), hlt.entity.Position(d.dropOff.position.x, d.dropOff.position.y)) <= width * 0.15:
+                    safe = False
+                if calculateDistance(x, y, me.shipyard.position.x, me.shipyard.position.y) > 0.3 * width:
+                    safe = False
+            if safe is True:
                 tempList = getTotalRange(x, y, r)
                 tempSum = tempList[2]
                 if tempSum > highSum:
                     highSum = tempSum
                     # highX =  getTotalRange(x, y, r)[0]
                     # highY =  getTotalRange(x, y, r)[1]
-                    highX = tempList[0]
-                    highY = tempList[1]
+                    # highX = tempList[0]
+                    # highY = tempList[1]
+
+                    highX = x
+                    highY = y
     logging.info("Ideal drop: {}, {}".format(highX, highY))
     return (highX, highY)
 
 def spawnDrop():
-    global settingDropOff, totalShips, dropCount
+    global settingDropOff, totalShips, dropCount, currentDrop
     percent = num_turns / (300+25*width/8)
 
-    if percent > .25 and settingDropOff is False and dropCount < 1:
+    if currentDrop.dropRange >= 7 and settingDropOff is False and dropCount < 1:
         loc = determineDrop(int(.15 * width))
         x = loc[0]
         y = loc[1]
@@ -436,12 +492,17 @@ def detectNewDrop():
                 found = True
                 break
         if found is False:
-            drop_list.append(DropOff(d))
+            newDrop = DropOff(d)
+            drop_list.append(newDrop)
+            currentDrop = newDrop
+            global settingDropOff
+            settingDropOff = False
 
 numMiners()
 
 me = game.me
 drop_list.append(DropOff(me.shipyard))
+currentDrop = drop_list[0]
 while True:
     #Update the frame
     game.update_frame()
@@ -477,8 +538,8 @@ while True:
 
     defend()
     slam()
-    spawnDrop()
     detectNewDrop()
+    spawnDrop()
     pickMoves()
 
     game.end_turn(command_list)
