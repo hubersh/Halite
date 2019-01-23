@@ -24,13 +24,33 @@ import math
 
 # This game object contains the initial game state.
 game = hlt.Game()
+
+
+# TODO: THERE MAY BE A WAY TO CIRCUMVENT THIS HARD CALC USING THE UPDATE METHOD
+def calculateHaliteLeft(game_map):
+    running_sum = 0
+    for x in range(game_map.width):
+        for y in range(game_map.height):
+            running_sum += game.game_map[hlt.entity.Position(x, y)].halite_amount
+    return running_sum/total_halite
+
+# method to get initial halite amount, used for percentage based decision later
+def getInitialHaliteAmount(game_map):
+    running_total = 0
+    for x in range(game_map.width):
+        for y in range(game_map.height):
+            running_total += game.game_map[hlt.entity.Position(x, y)].halite_amount
+    return running_total
+
 # At this point "game" variable is populated with initial map data.
 # This is a good place to do computationally expensive start-up pre-processing.
 # As soon as you call "ready" function below, the 2 second per turn timer will start.
+total_halite = getInitialHaliteAmount(game.game_map)
+
 game.ready("New")
 
 # Now that your bot is initialized, save a message to yourself in the log file with some important information.
-#   Here, you log here your id, which you can always fetch from the game object by using my_id.
+# Here, you log here your id, which you can always fetch from the game object by using my_id.
 logging.info("Successfully created bot! My Player ID is {}.".format(game.my_id))
 
 """ <<<Game Loop>>> """
@@ -116,35 +136,6 @@ class Miner:
             self.hasTarget = True
             tempDrop.adjust_range(sum / sumCount)
 
-    def target_highest2(self):
-        #Dont seek the new highest if we are already seeking a target (Adjust later to handle
-        #things like a differnt ship taking a space and such...)
-        if self.hasTarget is False:
-            highX= 0
-            highY = 0
-            #Calculate the average value of halite in our range while looping
-            sum = 0
-            sumCount = 0
-            tempDrop = self.getHomeDrop()
-            homeX = tempDrop.x
-            homeY = tempDrop.y
-            for x in range(homeX - tempDrop.dropRange, homeX + tempDrop.dropRange):
-                for y in range(homeY - tempDrop.dropRange, homeY + tempDrop.dropRange):
-                    if x >= 0 and x <= width and y >= 0 and y <= height:
-                        tempAmount = game.game_map[hlt.entity.Position(x, y)].halite_amount
-
-                        if tempAmount > 200 and self.target_avoid(x, y) is True:
-                            highX = x
-                            highY = y
-                        sumCount += 1
-                        sum += tempAmount
-
-            self.targetX = highX
-            self.targetY = highY
-            target_list.append((highX, highY))
-            self.hasTarget = True
-            tempDrop.adjust_range(sum / sumCount)
-
     #Second time is the charm?
     def seek2(self):
         # self.adjustMinPick()
@@ -164,10 +155,8 @@ class Miner:
                 self.clearTarget()
                 self.target_home()
 
-
         ideal_moves = []
         possible_moves = []
-
 
         if x < self.targetX:
             ideal_moves.append((x + 1, y, "e"))
@@ -369,7 +358,7 @@ def spawnShip():
 
     # Spawn a new ship for this temp condition
     if len(me.get_ships()) < totalShips and me.halite_amount >= 1000 and num_turns / (300+25*width/8) < .6 :
-        if game.game_map[hlt.entity.Position(me.shipyard.position.x, me.shipyard.position.y)].is_occupied is False and safeSpawn is True:
+        if game.game_map[hlt.entity.Position(me.shipyard.position.x, me.shipyard.position.y)].is_occupied is False and safeSpawn is True and halite_left > .5:
             command_list.append(me.shipyard.spawn())
             newSpawn = True
             tempList = []
@@ -510,6 +499,8 @@ while True:
     game_map = game.game_map
 
     checkDead()
+
+    halite_left = calculateHaliteLeft(game.game_map)
 
 
     #Reset the command list
