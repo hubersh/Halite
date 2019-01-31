@@ -362,15 +362,6 @@ class Miner:
         self.targetX = x
         self.targetY = y
 
-    #
-    def adjustMinPick(self):
-        temp = self.getHomeDrop()
-        if temp.dropRange > 11:
-            self.minPickUp = 15
-        else:
-            self.minPickUp = 50
-
-
 #we want to update our lists if we lost a ship
 def checkDead():
     #brute force find
@@ -547,7 +538,6 @@ def detectNewDrop():
 #calculate number of max number of miners we should have based off of game size
 numMiners()
 
-
 me = game.me
 #add our main drop off to our container
 drop_list.append(DropOff(me.shipyard))
@@ -583,7 +573,6 @@ while True:
 
     for tempShip in ship_list:
         tempShip.seek()
-
 
     spawnShip()
 
