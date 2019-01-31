@@ -1,6 +1,17 @@
 #!/usr/bin/env python3
 # Python 3.6
 
+"""
+Welcome to Ryan Walt, Keith Schmitt, and Hunter Hubers implementation
+of our Halite 2019 bot. We have a write up available at https://docs.google.com/document/d/11147yDUYn6HCQjd9wVJFE-ym6247JrIBiEbLi0l_SbI/edit?usp=sharing
+for grand valley students to view. We tried taking an object oriented approach
+to this problem. Please let me know at schmikei@mail.gvsu.edu if you run
+into any problems running this code!
+
+@authors: Ryan Walt, Keith Schmitt, Hunter Hubers
+@version: 1.0
+"""
+
 # Import the Halite SDK, which will let you interact with the game.
 import hlt
 
@@ -25,13 +36,16 @@ import math
 # This game object contains the initial game state.
 game = hlt.Game()
 
+
+#Helper method to get calculate the percentage of halite left on the map
 def calculateHaliteLeft(game_map):
     running_sum = 0
     for x in range(game_map.width):
         for y in range(game_map.height):
             running_sum += game.game_map[hlt.entity.Position(x, y)].halite_amount
     return running_sum/total_halite
-#method to get initial halite amount, used for percentage based decision later
+
+#Helper method to get initial halite amount
 def getInitialHaliteAmount(game_map):
     running_total = 0
     for x in range(game_map.width):
@@ -39,7 +53,7 @@ def getInitialHaliteAmount(game_map):
             running_total += game.game_map[hlt.entity.Position(x, y)].halite_amount
     return running_total
 
-
+#getting the total amount of halite on the map
 total_halite = getInitialHaliteAmount(game.game_map)
 
 
@@ -48,36 +62,47 @@ total_halite = getInitialHaliteAmount(game.game_map)
 # As soon as you call "ready" function below, the 2 second per turn timer will start.
 game.ready("New")
 
+
+
 # Now that your bot is initialized, save a message to yourself in the log file with some important information.
 #   Here, you log here your id, which you can always fetch from the game object by using my_id.
 logging.info("Successfully created bot! My Player ID is {}.".format(game.my_id))
 
 """ <<<Game Loop>>> """
-
-count = 10
+#width of the grid
 width = game.game_map.width
+#height of the grid
 height = game.game_map.height
+
+#container for moves we can make
 command_list = []
+
+#container for the ships we have
 ship_list = []
 target_list = []
 move_list = []
 drop_list = []
 
+#flag to indicate if we freshly spawn ship
 newSpawn = False
 # global num_turns
 num_turns = 0
-totalShips = 18
+#ideal number of ships gets set in numMiners()
+totalShips = 0
+#flag to set whether we are slamming into our base or not
 slamBool = False
+#flag to if we are setting
 settingDropOff = False
 dropCount = 0
 currentDrop = None
 
 
-
+#helper method that will use pythagereom theorem to calculate distances
 def calculateDistance(x1, y1, x2, y2):
     vals = math.pow(x2 - x1, 2) + math.pow(y2 - y1, 2)
     return math.sqrt(vals)
 
+#class for shipyards, in other words dropoff points
 class DropOff:
     def __init__(self, drop):
         self.dropOff = drop
@@ -85,16 +110,21 @@ class DropOff:
         self.x = drop.position.x
         self.y = drop.position.y
 
+    #slowly increment our circle
     def adjust_range(self, avg):
         if avg < 60:
             self.dropRange += 1
             logging.info("Range extended to: {}.".format(self.dropRange))
 
-
+#Miners are our resource gatherers, they will be the ships that will get halite
+#for our growing empire of Halite :D They have target x & y's and each ship
+#that we spawn will be one of these, because offense is not worth it in this
+#game!
 class Miner:
     def __init__(self, shipId):
         self.targetX = 0
         self.targetY = 0
+        #unique identifiers
         self.ship = me.get_ship(shipId)
         self.hasTarget = False
         self.headingHome = False
@@ -103,7 +133,7 @@ class Miner:
         self.avoid = False
         self.minPickUp = 50
 
-
+    #targeting method, using our circle from the dropoff range
     def target_highest(self):
         #Dont seek the new highest if we are already seeking a target (Adjust later to handle
         #things like a differnt ship taking a space and such...)
@@ -136,38 +166,9 @@ class Miner:
             self.hasTarget = True
             tempDrop.adjust_range(sum / sumCount)
 
-    def target_highest2(self):
-        #Dont seek the new highest if we are already seeking a target (Adjust later to handle
-        #things like a differnt ship taking a space and such...)
-        if self.hasTarget is False:
-            highX= 0
-            highY = 0
-            #Calculate the average value of halite in our range while looping
-            sum = 0
-            sumCount = 0
-            tempDrop = self.getHomeDrop()
-            homeX = tempDrop.x
-            homeY = tempDrop.y
-            for x in range(homeX - tempDrop.dropRange, homeX + tempDrop.dropRange):
-                for y in range(homeY - tempDrop.dropRange, homeY + tempDrop.dropRange):
-                    if x >= 0 and x <= width and y >= 0 and y <= height:
-                        tempAmount = game.game_map[hlt.entity.Position(x, y)].halite_amount
-
-                        if tempAmount > 200 and self.target_avoid(x, y) is True:
-                            highX = x
-                            highY = y
-                        sumCount += 1
-                        sum += tempAmount
-
-            self.targetX = highX
-            self.targetY = highY
-            target_list.append((highX, highY))
-            self.hasTarget = True
-            tempDrop.adjust_range(sum / sumCount)
-
-    #Second time is the charm?
-    def seek2(self):
-        # self.adjustMinPick()
+    #logic for making a move for the ships, this will push back a move to the
+    #command list, and thus relies on that being initialized
+    def seek(self):
         self.target_highest()
         self.avoid = False
 
@@ -181,6 +182,10 @@ class Miner:
             return
         if self.ship.halite_amount > 980 and self.setDropOff is False:
             if self.headingHome is False:
+                self.clearTarget()
+                self.target_home()
+        elif halite_left/total_halite > .6 and self.ship.halite_amount > 600:
+            if not self.headingHome:
                 self.clearTarget()
                 self.target_home()
 
@@ -228,7 +233,7 @@ class Miner:
             if self.headingHome is True:
                 self.headingHome = False
                 self.hasTarget = False
-                self.seek2()
+                self.seek()
                 return
 
 
@@ -240,7 +245,7 @@ class Miner:
             else:
                 command_list.append(self.ship.stay_still())
             return
-
+        #iterate over our potential moves and determine the best
         for move in ideal_moves:
             desireX = move[0]
             desireY = move[1]
@@ -263,18 +268,18 @@ class Miner:
                     command_list.append(self.ship.move(move[2]))
                     return
 
-            #Is this not a safe move?
+            #If this is not a safe move
             if self.willMove(desireX, desireY) is True or game.game_map[hlt.entity.Position(desireX, desireY)].is_occupied:
                 ideal_moves.remove(move)
 
-            #If it is safe then just move there.
+            #otherwise it is safe then just move there.
             else:
                 command_list.append(self.ship.move(move[2]))
                 move_list.append((desireX, desireY))
                 self.avoid = True
                 return
 
-        #If there are no possible moves then just stay still
+        #If there are no possible moves then just stay still, getting a default
         if len(possible_moves) == 0:
             command_list.append(self.ship.stay_still())
         else:
@@ -283,6 +288,9 @@ class Miner:
             command_list.append(self.ship.move(possible_moves[rand][2]))
             move_list.append((possible_moves[rand][0], possible_moves[rand][1]))
 
+    #testing around method, we are going to use this to sneak over across
+    #axes, will be called if ship.hasCrossed, we just want to reverse what our
+    #targeting method is returning
     def isOpposite(self, newDir, dirs):
         for d in dirs:
             if newDir == "s":
@@ -339,20 +347,22 @@ class Miner:
     def willMove(self, x, y):
         for coord in move_list:
             if x == coord[0] and y == coord[1]:
-                # logging.info("Someone will move to:{},{}".format((x,y)))
                 return True
         return False
 
+    #clear the target because we are done
     def clearTarget(self):
         for coord in target_list:
             if self.targetX == coord[0] and self.targetY == coord[1]:
                 target_list.remove(coord)
 
+    #set dropoff xy and make a new shipyard
     def setDropOff(self, x, y):
         self.dropOff = True
         self.targetX = x
         self.targetY = y
 
+    #
     def adjustMinPick(self):
         temp = self.getHomeDrop()
         if temp.dropRange > 11:
@@ -361,8 +371,9 @@ class Miner:
             self.minPickUp = 50
 
 
-
+#we want to update our lists if we lost a ship
 def checkDead():
+    #brute force find
     if len(me.get_ships()) != len(ship_list):
         for myShip in ship_list:
             idFound = False
@@ -371,10 +382,13 @@ def checkDead():
                 realId = s.id
                 if tempId == realId:
                     idFound = True
+            #remove from lists if it was not found
             if idFound is False:
                 ship_list.remove(myShip)
                 command_list = []
 
+#method that determines if we should spawn another ship, based off of it being
+#occupied and
 def spawnShip():
     global slamBool
     global settingDropOff
@@ -387,8 +401,9 @@ def spawnShip():
             break
 
 
-    # Spawn a new ship for this temp condition
-    if halite_left/total_halite < .5 and me.halite_amount >= 1000 and num_turns / (300+25*width/8) < .68 :
+    # Spawn a new ship based off of at least 60% halite left and number of num_turns
+    # is less than that one math equation.
+    if halite_left/total_halite < .6 and me.halite_amount >= 1000 and num_turns / (300+25*width/8) < .6 :
         if game.game_map[hlt.entity.Position(me.shipyard.position.x, me.shipyard.position.y)].is_occupied is False and safeSpawn is True:
             command_list.append(me.shipyard.spawn())
             newSpawn = True
@@ -397,6 +412,8 @@ def spawnShip():
                 tempList.append(i.id)
             logging.info("ship_list: {}".format(tempList))
 
+#simple defend method that will spawn a ship on top of our base if a
+#enemy ship is on the base
 def defend():
     if game.game_map[hlt.entity.Position(me.shipyard.position.x, me.shipyard.position.y)].is_occupied is True:
         owned = False
@@ -408,13 +425,14 @@ def defend():
         if owned is False and me.halite_amount > 1000:
             command_list.append(me.shipyard.spawn())
 
+#method that makes our ships slam into the closest shipyard
 def slam():
     global slamBool
     global num_turns
     for ship in ship_list:
-        # distance = game.game_map.calculate_distance(hlt.entity.Position(me.shipyard.position.x, me.shipyard.position.y), hlt.entity.Position(ship.ship.position.x, ship.ship.position.y))
         distance = calculateDistance(ship.ship.position.x, ship.ship.position.y, me.shipyard.position.x, me.shipyard.position.y)
-        if (300+25*width/8) - num_turns < distance * 2.3:
+        #our tinker equation that tells that it is time to go home and slam
+        if (300+25*width/7) - num_turns < distance * 2.3:
             ship.target_home()
             ship.slam = True
     num_turns += 1
@@ -431,6 +449,8 @@ def pickMoves():
         except:
             num = 0
 
+
+#method that will calculate the most efficient number of ships
 def numMiners():
     sum = 0
     for x in range(width):
@@ -441,6 +461,8 @@ def numMiners():
     global totalShips
     totalShips = int (avg / 8)
 
+#method that returns amount of halite in our circle,
+#returns a triplet of the x and y with the sum of area
 def getTotalRange(x, y, r):
     sum = 0
     highX = 0
@@ -458,6 +480,8 @@ def getTotalRange(x, y, r):
 
     return (highX, highY, sum)
 
+#method to determine the best position to lay a drop, returns a coordinate pair
+#for which we will place the drop if the conditions are met
 def determineDrop(r):
     highSum = 0
     highX = 0
@@ -475,20 +499,21 @@ def determineDrop(r):
                 tempSum = tempList[2]
                 if tempSum > highSum:
                     highSum = tempSum
-                    # highX =  getTotalRange(x, y, r)[0]
-                    # highY =  getTotalRange(x, y, r)[1]
-                    # highX = tempList[0]
-                    # highY = tempList[1]
+                    highX =  getTotalRange(x, y, r)[0]
+                    highY =  getTotalRange(x, y, r)[1]
+                    highX = tempList[0]
+                    highY = tempList[1]
 
                     highX = x
                     highY = y
     logging.info("Ideal drop: {}, {}".format(highX, highY))
     return (highX, highY)
 
+#method that will be called to every turn to see if we want to spawn another shipyard
 def spawnDrop():
     global settingDropOff, totalShips, dropCount, currentDrop
     percent = num_turns / (300+25*width/8)
-
+    #conditions to spawn a drop
     if currentDrop.dropRange >= 7 and settingDropOff is False and dropCount < 1:
         loc = determineDrop(int(.15 * width))
         x = loc[0]
@@ -503,6 +528,7 @@ def spawnDrop():
                 ship.setDropOff(x, y)
                 return
 
+#detect if a new drop has been spawned
 def detectNewDrop():
     for d in me.get_dropoffs():
         tempId = d.id
@@ -518,29 +544,32 @@ def detectNewDrop():
             global settingDropOff
             settingDropOff = False
 
+#calculate number of max number of miners we should have based off of game size
 numMiners()
 
+
 me = game.me
+#add our main drop off to our container
 drop_list.append(DropOff(me.shipyard))
 currentDrop = drop_list[0]
+
+#enter the game loop
 while True:
     #Update the frame
     game.update_frame()
     # You extract player metadata and the updated map metadata here for convenience.
     game_map = game.game_map
 
+    #calculate the halite left in the map each iteration
     halite_left = calculateHaliteLeft(game.game_map)
     checkDead()
 
 
-    #Reset the command list
+    #Reset the command and move list
     command_list = []
     move_list = []
 
     #Check if there was a new spawned ship, and add it to the ship object list.
-    # if newSpawn is True:
-    #     ship_list.append(Miner(me.get_ships()[0].id))
-    #     newSpawn = False
     if len(me.get_ships()) > len(ship_list):
         for newShip in me.get_ships():
             found = False
@@ -553,14 +582,20 @@ while True:
         newSpawn = False
 
     for tempShip in ship_list:
-        tempShip.seek2()
+        tempShip.seek()
+
 
     spawnShip()
 
     defend()
+
     slam()
+
     detectNewDrop()
+
     spawnDrop()
+
     pickMoves()
 
+    #pass the commands to the game
     game.end_turn(command_list)
